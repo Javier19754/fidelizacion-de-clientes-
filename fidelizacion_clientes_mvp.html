@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Fidelización</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+    }
+    .container {
+      max-width: 420px;
+      margin: 30px auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      text-align: center;
+    }
+    p {
+      line-height: 1.5;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 24px;
+    }
+    .hidden { display: none; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #111;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn-secondary {
+      background: #e9e9e9;
+      color: #111;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+    .card {
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 12px;
+    }
+    .points {
+      font-size: 34px;
+      font-weight: bold;
+      text-align: center;
+      margin: 10px 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #efefef;
+      margin-top: 8px;
+    }
+    .success { color: #0a7a2f; }
+    .danger { color: #b00020; }
+    .muted { color: #666; font-size: 14px; }
+    ul {
+      padding-left: 18px;
+    }
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .small-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      background: #111;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section id="homeScreen">
+      <h1>Club montecinos profesional barber</h1>
+      <p class="subtitle">Escanea, suma puntos y canjea beneficios</p>
+      <div class="card">
+        <h3>Bienvenido</h3>
+        <p>Esta es una versión inicial del sistema. Aquí el cliente puede registrarse, iniciar sesión, sumar puntos por visita y ver sus recompensas.</p>
+      </div>
+      <button class="btn" onclick="showScreen('registerScreen')">Registrarse</button>
+      <button class="btn btn-secondary" onclick="showScreen('loginScreen')">Iniciar sesión</button>
+    </section>
+
+    <section id="registerScreen" class="hidden">
+      <h2>Registro de cliente</h2>
+      <input id="regName" type="text" placeholder="Nombre completo" />
+      <input id="regPhone" type="text" placeholder="Teléfono" />
+      <input id="regEmail" type="email" placeholder="Correo electrónico" />
+      <input id="regPassword" type="password" placeholder="Contraseña" />
+      <button class="btn" onclick="registerUser()">Crear cuenta</button>
+      <button class="btn btn-secondary" onclick="showScreen('homeScreen')">Volver</button>
+      <p id="registerMessage" class="muted"></p>
+    </section>
+
+    <section id="loginScreen" class="hidden">
+      <h2>Iniciar sesión</h2>
+      <input id="loginEmail" type="email" placeholder="Correo electrónico" />
+      <input id="loginPassword" type="password" placeholder="Contraseña" />
+      <button class="btn" onclick="loginUser()">Entrar</button>
+      <button class="btn btn-secondary" onclick="showScreen('homeScreen')">Volver</button>
+      <p id="loginMessage" class="muted"></p>
+    </section>
+
+    <section id="dashboardScreen" class="hidden">
+      <div class="top-row">
+        <h2 style="margin:0;">Mi cuenta</h2>
+        <button class="small-btn" onclick="logoutUser()">Salir</button>
+      </div>
+      <p id="welcomeText"></p>
+      <div class="card">
+        <p class="muted">Puntos acumulados</p>
+        <div id="pointsText" class="points">0</div>
+        <button class="btn" onclick="registerVisit()">Registrar visita</button>
+        <p id="visitMessage" class="muted"></p>
+      </div>
+
+      <div class="card">
+        <h3>Recompensas</h3>
+        <div id="rewardsList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Historial</h3>
+        <ul id="historyList"></ul>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const rewards = [
+      { id: 1, name: '10% de descuento', pointsRequired: 5 },
+      { id: 2, name: '20% de descuento', pointsRequired: 8 },
+      { id: 3, name: 'Corte premium gratis', pointsRequired: 10 }
+    ];
+
+    let currentUser = null;
+
+    function showScreen(screenId) {
+      const sections = document.querySelectorAll('section');
+      sections.forEach(section => section.classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function getUsers() {
+      return JSON.parse(localStorage.getItem('users')) || [];
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    function registerUser() {
+      const name = document.getElementById('regName').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      const email = document.getElementById('regEmail').value.trim().toLowerCase();
+      const password = document.getElementById('regPassword').value.trim();
+      const message = document.getElementById('registerMessage');
+
+      if (!name || !phone || !email || !password) {
+        message.textContent = 'Completa todos los campos.';
+        message.className = 'muted danger';
+        return;
+      }
+
+      const users = getUsers();
+      const exists = users.find(user => user.email === email);
+
+      if (exists) {
+        message.textContent = 'Ese correo ya está registrado.';
+        message.className = 'muted danger';
+        return;
+      }
+
+      const newUser = {
+        id: Date.now(),
+        name,
+        phone,
+        email,
+        password,
+        points: 0,
+        lastVisitDate: null,
+        history: []
+      };
+
+      users.push(newUser);
+      saveUsers(users);
+
+      message.textContent = 'Cuenta creada con éxito. Ahora puedes iniciar sesión.';
+      message.className = 'muted success';
+
+      document.getElementById('regName').value = '';
+      document.getElementById('regPhone').value = '';
+      document.getElementById('regEmail').value = '';
+      document.getElementById('regPassword').value = '';
+    }
+
+    function loginUser() {
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value.trim();
+      const message = document.getElementById('loginMessage');
+      const users = getUsers();
+
+      const user = users.find(u => u.email === email && u.password === password);
+
+      if (!user) {
+        message.textContent = 'Correo o contraseña incorrectos.';
+        message.className = 'muted danger';
+        return;
+      }
+
+      currentUser = user;
+      message.textContent = '';
+      renderDashboard();
+      showScreen('dashboardScreen');
+    }
+
+    function renderDashboard() {
+      if (!currentUser) return;
+
+      document.getElementById('welcomeText').textContent = `Hola, ${currentUser.name}`;
+      document.getElementById('pointsText').textContent = currentUser.points;
+      document.getElementById('visitMessage').textContent = '';
+
+      const rewardsList = document.getElementById('rewardsList');
+      rewardsList.innerHTML = '';
+
+      rewards.forEach(reward => {
+        const available = currentUser.points >= reward.pointsRequired;
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <strong>${reward.name}</strong>
+          <p class="muted">Necesitas ${reward.pointsRequired} puntos</p>
+          <span class="badge">${available ? 'Disponible' : 'Aún no disponible'}</span>
+          <button class="btn" ${available ? '' : 'disabled'} onclick="redeemReward(${reward.id})">Canjear</button>
+        `;
+        rewardsList.appendChild(div);
+      });
+
+      const historyList = document.getElementById('historyList');
+      historyList.innerHTML = '';
+
+      if (currentUser.history.length === 0) {
+        historyList.innerHTML = '<li class="muted">Aún no hay movimientos registrados.</li>';
+      } else {
+        currentUser.history.slice().reverse().forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          historyList.appendChild(li);
+        });
+      }
+    }
+
+    function registerVisit() {
+      if (!currentUser) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const message = document.getElementById('visitMessage');
+
+      if (currentUser.lastVisitDate === today) {
+        message.textContent = 'Ya registraste una visita hoy.';
+        message.className = 'muted danger';
+        return;
+      }
+
+      currentUser.points += 1;
+      currentUser.lastVisitDate = today;
+      currentUser.history.push(`Visita registrada el ${today}: +1 punto`);
+      updateCurrentUser();
+
+      message.textContent = 'Visita registrada con éxito. Ganaste 1 punto.';
+      message.className = 'muted success';
+      renderDashboard();
+    }
+
+    function redeemReward(rewardId) {
+      if (!currentUser) return;
+
+      const reward = rewards.find(r => r.id === rewardId);
+      if (!reward) return;
+
+      if (currentUser.points < reward.pointsRequired) {
+        alert('No tienes puntos suficientes.');
+        return;
+      }
+
+      currentUser.points -= reward.pointsRequired;
+      currentUser.history.push(`Canje realizado: ${reward.name} (-${reward.pointsRequired} puntos)`);
+      updateCurrentUser();
+      renderDashboard();
+      alert(`Canjeaste: ${reward.name}`);
+    }
+
+    function updateCurrentUser() {
+      const users = getUsers();
+      const index = users.findIndex(user => user.id === currentUser.id);
+      if (index !== -1) {
+        users[index] = currentUser;
+        saveUsers(users);
+      }
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      showScreen('homeScreen');
+    }
+  </script>
+</body>
+</html>
