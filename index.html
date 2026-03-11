@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Fidelización</title>
+  <title>Club Montecinos</title>
   <style>
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #f5f5f5;
       color: #222;
     }
+
     .container {
       max-width: 420px;
       margin: 30px auto;
@@ -20,19 +22,26 @@
       padding: 24px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
+
     h1, h2, h3 {
       margin-top: 0;
       text-align: center;
     }
+
     p {
       line-height: 1.5;
     }
+
     .subtitle {
       text-align: center;
       color: #666;
       margin-bottom: 24px;
     }
-    .hidden { display: none; }
+
+    .hidden {
+      display: none;
+    }
+
     .btn {
       width: 100%;
       padding: 12px;
@@ -44,12 +53,17 @@
       cursor: pointer;
       margin-top: 10px;
     }
-    .btn:hover { opacity: 0.92; }
+
+    .btn:hover {
+      opacity: 0.92;
+    }
+
     .btn-secondary {
       background: #e9e9e9;
       color: #111;
     }
-    input, select {
+
+    input {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
@@ -57,6 +71,7 @@
       border-radius: 10px;
       font-size: 15px;
     }
+
     .card {
       background: #fafafa;
       border: 1px solid #eee;
@@ -64,12 +79,14 @@
       padding: 14px;
       margin-top: 12px;
     }
+
     .points {
       font-size: 34px;
       font-weight: bold;
       text-align: center;
       margin: 10px 0;
     }
+
     .badge {
       display: inline-block;
       padding: 6px 10px;
@@ -78,18 +95,22 @@
       background: #efefef;
       margin-top: 8px;
     }
+
     .success { color: #0a7a2f; }
     .danger { color: #b00020; }
     .muted { color: #666; font-size: 14px; }
+
     ul {
       padding-left: 18px;
     }
+
     .top-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
     }
+
     .small-btn {
       border: none;
       border-radius: 8px;
@@ -103,12 +124,16 @@
 <body>
   <div class="container">
     <section id="homeScreen">
-      <h1>Club montecinos profesional barber</h1>
+      <h1>Club Montecinos</h1>
       <p class="subtitle">Escanea, suma puntos y canjea beneficios</p>
+
       <div class="card">
         <h3>Bienvenido</h3>
-        <p>Esta es una versión inicial del sistema. Aquí el cliente puede registrarse, iniciar sesión, sumar puntos por visita y ver sus recompensas.</p>
+        <p>
+          Regístrate o inicia sesión para acumular puntos en tus visitas.
+        </p>
       </div>
+
       <button class="btn" onclick="showScreen('registerScreen')">Registrarse</button>
       <button class="btn btn-secondary" onclick="showScreen('loginScreen')">Iniciar sesión</button>
     </section>
@@ -138,11 +163,20 @@
         <h2 style="margin:0;">Mi cuenta</h2>
         <button class="small-btn" onclick="logoutUser()">Salir</button>
       </div>
+
       <p id="welcomeText"></p>
+
       <div class="card">
         <p class="muted">Puntos acumulados</p>
         <div id="pointsText" class="points">0</div>
-        <button class="btn" onclick="registerVisit()">Registrar visita</button>
+
+        <button class="btn" onclick="toggleVisitValidation()">Registrar visita</button>
+
+        <div id="visitValidationBox" class="hidden" style="margin-top:12px;">
+          <input id="visitCodeInput" type="text" placeholder="Ingresa el código entregado por el barbero" />
+          <button class="btn" onclick="registerVisit()">Validar código y sumar punto</button>
+        </div>
+
         <p id="visitMessage" class="muted"></p>
       </div>
 
@@ -159,13 +193,15 @@
   </div>
 
   <script>
-    const rewards = [
-      { id: 1, name: '10% de descuento', pointsRequired: 5 },
-      { id: 2, name: '20% de descuento', pointsRequired: 8 },
-      { id: 3, name: 'Corte premium gratis', pointsRequired: 10 }
-    ];
-
     let currentUser = null;
+
+    function getRewards() {
+      return JSON.parse(localStorage.getItem('rewards')) || [
+        { id: 1, name: '10% descuento corte', pointsRequired: 4 },
+        { id: 2, name: 'Perfilado de barba gratis', pointsRequired: 6 },
+        { id: 3, name: 'Corte premium gratis', pointsRequired: 10 }
+      ];
+    }
 
     function showScreen(screenId) {
       const sections = document.querySelectorAll('section');
@@ -252,9 +288,13 @@
       document.getElementById('welcomeText').textContent = `Hola, ${currentUser.name}`;
       document.getElementById('pointsText').textContent = currentUser.points;
       document.getElementById('visitMessage').textContent = '';
+      document.getElementById('visitCodeInput').value = '';
+      document.getElementById('visitValidationBox').classList.add('hidden');
 
       const rewardsList = document.getElementById('rewardsList');
       rewardsList.innerHTML = '';
+
+      const rewards = getRewards();
 
       rewards.forEach(reward => {
         const available = currentUser.points >= reward.pointsRequired;
@@ -283,11 +323,24 @@
       }
     }
 
+    function toggleVisitValidation() {
+      const box = document.getElementById('visitValidationBox');
+      const message = document.getElementById('visitMessage');
+      message.textContent = '';
+      box.classList.toggle('hidden');
+    }
+
     function registerVisit() {
       if (!currentUser) return;
 
       const today = new Date().toISOString().split('T')[0];
       const message = document.getElementById('visitMessage');
+      const enteredCode = document.getElementById('visitCodeInput').value.trim();
+
+      const currentCode = localStorage.getItem('adminDynamicCode');
+      const codeCreatedAt = parseInt(localStorage.getItem('adminDynamicCodeCreatedAt'), 10);
+      const now = Date.now();
+      const codeIsValidTime = currentCode && codeCreatedAt && (now - codeCreatedAt < 60000);
 
       if (currentUser.lastVisitDate === today) {
         message.textContent = 'Ya registraste una visita hoy.';
@@ -295,19 +348,42 @@
         return;
       }
 
+      if (!enteredCode) {
+        message.textContent = 'Debes ingresar el código entregado por el barbero.';
+        message.className = 'muted danger';
+        return;
+      }
+
+      if (!codeIsValidTime) {
+        message.textContent = 'El código ya expiró. Pide uno nuevo al barbero.';
+        message.className = 'muted danger';
+        return;
+      }
+
+      if (enteredCode !== currentCode) {
+        message.textContent = 'Código incorrecto. No se registró la visita.';
+        message.className = 'muted danger';
+        return;
+      }
+
       currentUser.points += 1;
       currentUser.lastVisitDate = today;
-      currentUser.history.push(`Visita registrada el ${today}: +1 punto`);
+      currentUser.history.push(`Visita validada el ${today}: +1 punto`);
       updateCurrentUser();
 
       message.textContent = 'Visita registrada con éxito. Ganaste 1 punto.';
       message.className = 'muted success';
+
+      document.getElementById('visitCodeInput').value = '';
+      document.getElementById('visitValidationBox').classList.add('hidden');
+
       renderDashboard();
     }
 
     function redeemReward(rewardId) {
       if (!currentUser) return;
 
+      const rewards = getRewards();
       const reward = rewards.find(r => r.id === rewardId);
       if (!reward) return;
 
@@ -326,6 +402,7 @@
     function updateCurrentUser() {
       const users = getUsers();
       const index = users.findIndex(user => user.id === currentUser.id);
+
       if (index !== -1) {
         users[index] = currentUser;
         saveUsers(users);
