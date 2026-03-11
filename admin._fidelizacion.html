@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Montecinos - Panel Administrador</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #222;
+    }
+    .container {
+      max-width: 980px;
+      margin: 24px auto;
+      background: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .subtitle { color: #666; margin-bottom: 18px; }
+    .hidden { display: none; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #111;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-secondary { background: #e8e8e8; color: #111; }
+    .btn-danger { background: #8f1024; }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      margin: 8px 0;
+      font-size: 15px;
+    }
+    .code-box {
+      text-align: center;
+      font-size: 34px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      padding: 18px;
+      border-radius: 14px;
+      background: #111;
+      color: #fff;
+      margin-top: 10px;
+    }
+    .timer { text-align: center; font-size: 18px; margin-top: 10px; }
+    .small { color: #666; font-size: 14px; line-height: 1.5; }
+    .success { color: #0a7a2f; }
+    .danger { color: #b00020; }
+    .stat {
+      background: #111;
+      color: #fff;
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .stat .label { font-size: 13px; opacity: 0.85; }
+    .stat .value { font-size: 28px; font-weight: bold; margin-top: 8px; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #e9e9e9;
+      text-align: left;
+      vertical-align: top;
+    }
+    .pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #efefef;
+      font-size: 12px;
+    }
+    ul { padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section id="loginScreen">
+      <h1>Club Montecinos</h1>
+      <p class="subtitle">Panel administrador</p>
+      <input id="adminUser" type="text" placeholder="Usuario administrador" />
+      <input id="adminPassword" type="password" placeholder="Contraseña" />
+      <button class="btn" onclick="loginAdmin()">Ingresar</button>
+      <p id="loginMessage" class="small"></p>
+    </section>
+
+    <section id="adminScreen" class="hidden">
+      <div class="topbar">
+        <div>
+          <h2 style="margin-bottom:6px;">Panel Club Montecinos</h2>
+          <p class="subtitle" style="margin:0;">Administración general del sistema de fidelización</p>
+        </div>
+        <button class="btn btn-secondary" style="max-width:180px;" onclick="logoutAdmin()">Cerrar sesión</button>
+      </div>
+
+      <div class="grid">
+        <div class="stat">
+          <div class="label">Clientes registrados</div>
+          <div id="totalClients" class="value">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Puntos entregados</div>
+          <div id="totalPoints" class="value">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Canjes registrados</div>
+          <div id="totalRedeems" class="value">0</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Código dinámico</h3>
+          <div id="codeBox" class="code-box">000000</div>
+          <div id="timerText" class="timer">Tiempo restante: 60 s</div>
+          <p class="small">Este código dura 1 minuto. Díselo al cliente solo cuando termine la atención.</p>
+          <button class="btn" onclick="generateNewCode()">Generar nuevo código ahora</button>
+        </div>
+
+        <div class="card">
+          <h3>Configurar recompensas</h3>
+          <input id="rewardName" type="text" placeholder="Nombre de recompensa" />
+          <input id="rewardPoints" type="number" placeholder="Puntos requeridos" />
+          <button class="btn" onclick="addReward()">Agregar recompensa</button>
+          <p id="rewardMessage" class="small"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recompensas activas</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Recompensa</th>
+              <th>Puntos</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="rewardsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Clientes registrados</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Teléfono</th>
+              <th>Puntos</th>
+              <th>Última visita</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Historial de clientes</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Movimiento</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Últimos códigos generados</h3>
+        <ul id="codeHistory"></ul>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const ADMIN_USER = 'admin';
+    const ADMIN_PASSWORD = '1234';
+    const CODE_DURATION = 60;
+
+    let currentCode = '';
+    let secondsLeft = CODE_DURATION;
+    let timerInterval = null;
+
+    function loginAdmin() {
+      const user = document.getElementById('adminUser').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const message = document.getElementById('loginMessage');
+
+      if (user === ADMIN_USER && password === ADMIN_PASSWORD) {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('adminScreen').classList.remove('hidden');
+        message.textContent = '';
+        loadOrCreateCode();
+        startTimer();
+        renderDashboard();
+        return;
+      }
+
+      message.textContent = 'Usuario o contraseña incorrectos.';
+      message.className = 'small danger';
+    }
+
+    function logoutAdmin() {
+      document.getElementById('adminScreen').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('adminUser').value = '';
+      document.getElementById('adminPassword').value = '';
+      clearInterval(timerInterval);
+    }
+
+    function getUsers() {
+      return JSON.parse(localStorage.getItem('users')) || [];
+    }
+
+    function getRewards() {
+      const storedRewards = JSON.parse(localStorage.getItem('rewards'));
+      if (storedRewards && storedRewards.length > 0) return storedRewards;
+
+      const defaultRewards = [
+        { id: 1, name: '10% descuento corte', pointsRequired: 4 },
+        { id: 2, name: 'Perfilado de barba gratis', pointsRequired: 6 },
+        { id: 3, name: 'Corte premium gratis', pointsRequired: 10 }
+      ];
+      localStorage.setItem('rewards', JSON.stringify(defaultRewards));
+      return defaultRewards;
+    }
+
+    function saveRewards(rewards) {
+      localStorage.setItem('rewards', JSON.stringify(rewards));
+    }
+
+    function generateRandomCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    function saveCodeData(code, createdAt) {
+      localStorage.setItem('adminDynamicCode', code);
+      localStorage.setItem('adminDynamicCodeCreatedAt', createdAt.toString());
+
+      const history = JSON.parse(localStorage.getItem('adminCodeHistory')) || [];
+      history.push(`Código ${code} generado a las ${new Date(createdAt).toLocaleTimeString('es-CL')}`);
+      localStorage.setItem('adminCodeHistory', JSON.stringify(history.slice(-8)));
+    }
+
+    function loadOrCreateCode() {
+      const savedCode = localStorage.getItem('adminDynamicCode');
+      const savedCreatedAt = parseInt(localStorage.getItem('adminDynamicCodeCreatedAt'), 10);
+      const now = Date.now();
+
+      if (savedCode && savedCreatedAt && now - savedCreatedAt < CODE_DURATION * 1000) {
+        currentCode = savedCode;
+        secondsLeft = CODE_DURATION - Math.floor((now - savedCreatedAt) / 1000);
+      } else {
+        createFreshCode();
+      }
+
+      renderCode();
+      renderCodeHistory();
+    }
+
+    function createFreshCode() {
+      currentCode = generateRandomCode();
+      secondsLeft = CODE_DURATION;
+      saveCodeData(currentCode, Date.now());
+      renderCode();
+      renderCodeHistory();
+    }
+
+    function generateNewCode() {
+      createFreshCode();
+      clearInterval(timerInterval);
+      startTimer();
+    }
+
+    function renderCode() {
+      document.getElementById('codeBox').textContent = currentCode;
+      document.getElementById('timerText').textContent = `Tiempo restante: ${secondsLeft} s`;
+    }
+
+    function renderCodeHistory() {
+      const history = JSON.parse(localStorage.getItem('adminCodeHistory')) || [];
+      const list = document.getElementById('codeHistory');
+      list.innerHTML = '';
+
+      if (history.length === 0) {
+        list.innerHTML = '<li class="small">Aún no hay códigos generados.</li>';
+        return;
+      }
+
+      history.slice().reverse().forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        list.appendChild(li);
+      });
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+
+        if (secondsLeft <= 0) {
+          createFreshCode();
+        } else {
+          renderCode();
+        }
+      }, 1000);
+    }
+
+    function addReward() {
+      const name = document.getElementById('rewardName').value.trim();
+      const points = Number(document.getElementById('rewardPoints').value.trim());
+      const message = document.getElementById('rewardMessage');
+
+      if (!name || !points || points <= 0) {
+        message.textContent = 'Ingresa una recompensa válida.';
+        message.className = 'small danger';
+        return;
+      }
+
+      const rewards = getRewards();
+      rewards.push({
+        id: Date.now(),
+        name,
+        pointsRequired: points
+      });
+      saveRewards(rewards);
+      document.getElementById('rewardName').value = '';
+      document.getElementById('rewardPoints').value = '';
+      message.textContent = 'Recompensa agregada correctamente.';
+      message.className = 'small success';
+      renderRewardsTable();
+    }
+
+    function deleteReward(id) {
+      const rewards = getRewards().filter(reward => reward.id !== id);
+      saveRewards(rewards);
+      renderRewardsTable();
+    }
+
+    function renderRewardsTable() {
+      const rewards = getRewards();
+      const tbody = document.getElementById('rewardsTableBody');
+      tbody.innerHTML = '';
+
+      if (rewards.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">No hay recompensas registradas.</td></tr>';
+        return;
+      }
+
+      rewards.forEach(reward => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${reward.name}</td>
+          <td>${reward.pointsRequired}</td>
+          <td><button class="btn btn-danger" style="margin:0; max-width:120px;" onclick="deleteReward(${reward.id})">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderClientsTable() {
+      const users = getUsers();
+      const tbody = document.getElementById('clientsTableBody');
+      tbody.innerHTML = '';
+
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No hay clientes registrados todavía.</td></tr>';
+        return;
+      }
+
+      users.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${user.name || '-'}</td>
+          <td>${user.email || '-'}</td>
+          <td>${user.phone || '-'}</td>
+          <td><span class="pill">${user.points || 0} pts</span></td>
+          <td>${user.lastVisitDate || 'Sin visitas'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderHistoryTable() {
+      const users = getUsers();
+      const tbody = document.getElementById('historyTableBody');
+      tbody.innerHTML = '';
+
+      let rows = [];
+      users.forEach(user => {
+        (user.history || []).forEach(item => {
+          rows.push({ client: user.name, movement: item });
+        });
+      });
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2">No hay historial disponible.</td></tr>';
+        return;
+      }
+
+      rows.slice().reverse().forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.client}</td>
+          <td>${row.movement}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderStats() {
+      const users = getUsers();
+      const totalClients = users.length;
+      const totalPoints = users.reduce((sum, user) => sum + (user.points || 0), 0);
+      let totalRedeems = 0;
+
+      users.forEach(user => {
+        (user.history || []).forEach(item => {
+          if (item.toLowerCase().includes('canje')) totalRedeems++;
+        });
+      });
+
+      document.getElementById('totalClients').textContent = totalClients;
+      document.getElementById('totalPoints').textContent = totalPoints;
+      document.getElementById('totalRedeems').textContent = totalRedeems;
+    }
+
+    function renderDashboard() {
+      renderStats();
+      renderRewardsTable();
+      renderClientsTable();
+      renderHistoryTable();
+    }
+  </script>
+</body>
+</html>
